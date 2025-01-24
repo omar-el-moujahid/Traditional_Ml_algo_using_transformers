@@ -16,6 +16,14 @@ from tokenizers.pre_tokenizers import Whitespace
 from pathlib import Path
 
 from dataset import BilingualDataset , cusal_mask
+
+from importnb import Notebook
+
+# Import the `transformers.ipynb` file
+with Notebook():
+    from transformers import build_transformer
+
+
 ## buil the tokinezer
 def get_or_build_tokenizer(config , ds , lang):
     tokinezer_path = Path(config["tokinezer_file"].format(lang))
@@ -63,5 +71,8 @@ def get_dataset(config):
         max_len_tgt=max(max_len_tgt, tokenizer_src.encode(item["translation"][config["lang_tgt"]]))
     print(f'max lenght in the src langague is {max_len_src}')
     print(f'max lenght in the tgt langague is {max_len_tgt}')
-    
-    # return train_ds, val_ds, tokenizer_src, tokenizer_tgt
+    train_dataloader = DataLoader(train_ds ,batch_size=config["batch_size"] , shuffle=True)
+    val_dataloader =DataLoader(val_ds ,batch_size=config["batch_size"] , shuffle=True)
+    return train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt
+def get_model (config , src_vocab_size ,tgt_vocab_size ):
+    return build_transformer( src_vocab_size , tgt_vocab_size , config["src_seq_len"] , config["tgt_seq_len"]  )
