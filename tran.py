@@ -20,8 +20,7 @@ from dataset import BilingualDataset , cusal_mask
 from importnb import Notebook
 
 # Import the `transformers.ipynb` file
-with Notebook():
-    from transformers import build_transformer
+from transformers import build_transformer
 
 
 ## buil the tokinezer
@@ -75,4 +74,4 @@ def get_dataset(config):
     val_dataloader =DataLoader(val_ds ,batch_size=config["batch_size"] , shuffle=True)
     return train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt
 def get_model (config , src_vocab_size ,tgt_vocab_size ):
-    return build_transformer( src_vocab_size , tgt_vocab_size , config["src_seq_len"] , config["tgt_seq_len"]  )
+    return build_transformer(src_vocab_size , tgt_vocab_size , config["src_seq_len"] , config["tgt_seq_len"] , config["d_model"])
