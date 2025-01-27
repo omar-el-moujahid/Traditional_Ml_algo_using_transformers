@@ -22,7 +22,7 @@ class Inputembedding(nn.Module):
         super().__init__()
         self.d_model=d_model
         self.vocab_size=vocab_size
-        self.embedkding = nn.Embedding(vocab_size,d_model)
+        self.embedding = nn.Embedding(vocab_size,d_model)
     def forward(self,x):
         return self.embedding(x) * math.sqrt(self.d_model)
 
@@ -109,7 +109,7 @@ class MultiheadAttenstion(nn.Module):
     def calculat_attenstion( q , k , v , mask , dropout : nn.Dropout ):
         attemstion_score= ((q@k.transpose(-2,-1)) / math.sqrt(q.shape[-1]))
         if mask is not None:
-            attemstion_score.masked_fill_(mask==0,-100)
+            attemstion_score.masked_fill_(mask==0,-1e9)
         attemstion_score = attemstion_score.softmax(dim =-1)
         if dropout is not None:
             attemstion_score=dropout(attemstion_score )
@@ -124,8 +124,8 @@ class MultiheadAttenstion(nn.Module):
         # the porpose to have (seq , d_k)
         # so we did it for all the three
         query=query.view(query.shape[0],query.shape[1], self.h , self.d_k).transpose(1,2)
-        key=key.view(key.key[0],key.shape[1], self.h , self.d_k).transpose(1,2)
-        value=value.view(value.value[0],value.shape[1], self.h , self.d_k).transpose(1,2)
+        key=key.view(key.shape[0],key.shape[1], self.h , self.d_k).transpose(1,2)
+        value=value.view(value.shape[0],value.shape[1], self.h , self.d_k).transpose(1,2)
         x , attemstion_score = MultiheadAttenstion.calculat_attenstion(query,key,value,mask , self.dropout)
         ## concat the heads now  
         # first we trnaspose them to have the initale spreat (batch , seq , h , d_k)
@@ -135,7 +135,7 @@ class MultiheadAttenstion(nn.Module):
         x = x.contiguous().view(x.shape[0], x.shape[1], self.h*self.d_k) 
         # final target is 
         x= self.w_0(x)
-
+        return x
 
 # In[63]:
 
@@ -159,7 +159,7 @@ class EncoderBlock(nn.Module):
         super().__init__()
         self. self_attentio = self_attentio 
         self.feed_forword = feed_forword
-        self.connection = nn.ModuleList([ResidualConnection(dropout) for _ in range(2)])
+        self.connection = nn.ModuleList([ResidualCongitnection(dropout) for _ in range(2)])
     def forward(self , x , src_masck):
         x=self.connection[0](x, lambda x : self.self_attentio(x,x,x,src_masck))
         x=self.connection[1](x, self.feed_forword)
@@ -188,7 +188,7 @@ class DencoderBlock(nn.Module):
         super().__init__()
         self. self_attentio = self_attentio 
         self.feed_forword = feed_forword
-        self.connection = nn.ModuleList([ResidualConnection(dropout) for _ in range(3)])
+        self.connection = nn.ModuleList([ResidualCongitnection(dropout) for _ in range(3)])
     def forward(self , x  , k  , v, src_masck , tgt_mask):
         x=self.connection[0](x, lambda x : self.self_attentio(x,x,x,tgt_mask))
         # result from the encoder  the k and the value 
@@ -236,22 +236,22 @@ class Transformer(nn.Module):
         self.src_position = src_position
         self.target_position = target_position
         self.projection=projection
-    def encoder(self , src , src_mask ):
+    def encode(self , src , src_mask ):
         src = self.srcEmbedding(src)
         src = self.src_position(src)
         return self.encoder(src , src_mask)
-    def decode(self , tgt , tgt_mask):
+    def decode(self ,encoder_output , src_mask , tgt , tgt_mask):
         tgt = self.targettembedding(tgt)
         tgt = self.target_position(tgt)
-        return self.encoder(tgt , tgt_mask)
+        return self.decoder(tgt,encoder_output,src_mask,tgt_mask)
     def project(self , x):
-        return self.project(x)
+        return self.projection(x)
 
 
 # In[71]:
 
 
-def h( src_vocab_size : int , tgt_vocab_size : int , src_seq_len : int , tgt_seq_len : int , d_model :int = 512 , n : int = 6  ,  h : int  = 8  , dropout : int =0.1 , d_ff : int = 2048 ) -> Transformer:
+def build_transformer( src_vocab_size : int , tgt_vocab_size : int , src_seq_len : int , tgt_seq_len : int , d_model :int = 512 , n : int = 6  ,  h : int  = 8  , dropout : int =0.1 , d_ff : int = 2048 ) -> Transformer:
     
     src_embed = Inputembedding(d_model , src_vocab_size)
     tgt_emdeb = Inputembedding(d_model , tgt_vocab_size)
@@ -290,7 +290,3 @@ def h( src_vocab_size : int , tgt_vocab_size : int , src_seq_len : int , tgt_seq
 
 
 # In[ ]:
-
-
-
-
